@@ -48,39 +48,46 @@ public class Theme: NSManagedObject {
             self.init(entity: entity, insertInto: context)
 
             let colorCube = CCColorCube()
-            var colors: [UIColor] = colorCube.extractColors(from: image, flags: CCOnlyDistinctColors, count: 4)!
+            let brightColors = colorCube.extractBrightColors(from: image, avoid: UIColor(hex: "ffffff"), count: 4)!
+            let darkColors = colorCube.extractDarkColors(from: image, avoid: UIColor(hex: "000000"), count: 4)!
+            var colors: [UIColor] = brightColors + darkColors
 
             guard let averageColor = image.averageColor() else {
                 throw ArtworkColorsError.averageColorFailed
             }
 
-            let displayOnDark = averageColor.luminance < darknessThreshold
-
-            colors.sort { (color1: UIColor, color2: UIColor) -> Bool in
-                if displayOnDark {
-                    return color1.isDarker(than: color2)
-                }
-
-                return color1.isLighter(than: color2)
+            print("===== colors: ")
+            for color in colors {
+                print(color.cssHex)
             }
 
-            let backgroundColor: UIColor = colors[0]
+//            let displayOnDark = averageColor.luminance < darknessThreshold
+//
+//            colors.sort { (color1: UIColor, color2: UIColor) -> Bool in
+//                if displayOnDark {
+//                    return color1.isDarker(than: color2)
+//                }
+//
+//                return color1.isLighter(than: color2)
+//            }
+//
+//            let backgroundColor: UIColor = colors[0]
+//
+//            colors = colors.map { (color: UIColor) -> UIColor in
+//                let ratio = color.contrastRatio(with: backgroundColor)
+//
+//                if ratio > minimumContrastRatio || color == backgroundColor {
+//                    return color
+//                }
+//
+//                if displayOnDark {
+//                    return color.overlayWhite
+//                }
+//
+//                return color.overlayBlack
+//            }
 
-            colors = colors.map { (color: UIColor) -> UIColor in
-                let ratio = color.contrastRatio(with: backgroundColor)
-
-                if ratio > minimumContrastRatio || color == backgroundColor {
-                    return color
-                }
-
-                if displayOnDark {
-                    return color.overlayWhite
-                }
-
-                return color.overlayBlack
-            }
-
-            self.setColorsFromArray(colors, displayOnDark: displayOnDark)
+            self.setColorsFromArray(colors)
         } catch {
             self.setColorsFromArray()
         }
@@ -102,12 +109,20 @@ public class Theme: NSManagedObject {
             }
         }
 
+        print("===== light sorted:")
         let lightSorted = colorsToSet.sorted { (c1, c2) -> Bool in
             return c2.isDarker(than: c1)
         }
-
+        for color in lightSorted {
+            print(color.cssHex)
+        }
+        print("===== dark sorted:")
         let darkSorted = colorsToSet.sorted { (c1, c2) -> Bool in
             return c1.isDarker(than: c2)
+        }
+
+        for color in darkSorted {
+            print(color.cssHex)
         }
 
         // background
@@ -125,9 +140,11 @@ public class Theme: NSManagedObject {
         // tertiary
         self.darkAccentHex = self.getHighlightColor(from: darkSorted,
                                                     backgroundColor: self.darkBackgroundColor,
+                                                    primaryColor: self.darkPrimaryColor,
                                                     darkVariant: true) ?? "7685B3"
         self.defaultAccentHex = self.getHighlightColor(from: lightSorted,
                                                        backgroundColor: self.defaultBackgroundColor,
+                                                       primaryColor: self.defaultPrimaryColor,
                                                        darkVariant: false) ?? "7685B3"
 
         // secondary
@@ -145,12 +162,12 @@ public class Theme: NSManagedObject {
 
     func getBackgroundColor(from colors: [UIColor], darkVariant: Bool) -> String? {
         let color = colors.first { (color) -> Bool in
-            //let saturationCondition = color.saturation < 0.5
+            let saturationCondition = color.saturation < 0.5
             let brightnessCondition = darkVariant
                 ? color.brightness < 0.3
                 : color.brightness > 0.8
 
-            return brightnessCondition // && saturationCondition
+            return brightnessCondition && saturationCondition
         }
 
         guard color == nil else { return color!.cssHex }
@@ -205,7 +222,7 @@ public class Theme: NSManagedObject {
         return overlayedColor.cssHex
     }
 
-    func getHighlightColor(from colors: [UIColor], backgroundColor: UIColor, darkVariant: Bool) -> String? {
+    func getHighlightColor(from colors: [UIColor], backgroundColor: UIColor, primaryColor: UIColor, darkVariant: Bool) -> String? {
         let candidates = colors.compactMap { (color) -> UIColor? in
             if color.brightness < backgroundColor.brightness {
                 print(color.cssHex)
@@ -215,11 +232,7 @@ public class Theme: NSManagedObject {
             return nil
         }
 
-        let primaryColor = darkVariant
-            ? UIColor(hex: self.darkPrimaryHex)
-            : UIColor(hex: self.defaultPrimaryHex)
-
-        let finalSort = colors.sorted { (c1, c2) -> Bool in
+        let finalSort = candidates.sorted { (c1, c2) -> Bool in
             return c2.contrastRatio(with: primaryColor) > c1.contrastRatio(with: primaryColor)
         }
 
