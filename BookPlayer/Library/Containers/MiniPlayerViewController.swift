@@ -104,7 +104,8 @@ extension MiniPlayerViewController: Themeable {
         guard let book = self.book,
             book.artworkColors != nil else { return }
 
-        let appliedTheme: Theme = book.artworkColors
+        // TODO: proper migration of old themes for 4 new colors
+        let appliedTheme: Theme = theme //book.artworkColors
         appliedTheme.useDarkVariant = theme.useDarkVariant
 
         self.titleLabel.textColor = appliedTheme.primaryColor

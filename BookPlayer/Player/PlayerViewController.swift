@@ -350,7 +350,8 @@ class PlayerViewController: UIViewController, UIGestureRecognizerDelegate {
 
 extension PlayerViewController: Themeable {
     func applyTheme(_ theme: Theme) {
-        let appliedTheme: Theme = self.currentBook.artworkColors
+        // TODO: proper migration of old themes for 4 new colors
+        let appliedTheme: Theme = theme //self.currentBook.artworkColors
         appliedTheme.useDarkVariant = themeProvider.useDarkVariant
 
         self.themedStatusBarStyle = theme.useDarkVariant

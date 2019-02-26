@@ -64,7 +64,8 @@ extension PlayerMetaViewController: Themeable {
     func applyTheme(_ theme: Theme) {
         guard let book = self.book else { return }
 
-        let appliedTheme: Theme = book.artworkColors
+        // TODO: proper migration of old themes for 4 new colors
+        let appliedTheme: Theme = theme //book.artworkColors
         appliedTheme.useDarkVariant = theme.useDarkVariant
         self.titleLabel.textColor = appliedTheme.primaryColor
         self.authorLabel.textColor = appliedTheme.detailColor
